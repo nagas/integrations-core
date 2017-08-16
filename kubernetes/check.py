@@ -108,7 +108,7 @@ class Kubernetes(AgentCheck):
                 except re.error as e:
                     self.log.warning('Invalid regexp for "namespace_name_regexp" in configuration (ignoring regexp): %s' % str(e))
 
-            self._collect_events = _is_affirmative(inst.get('collect_events', DEFAULT_COLLECT_EVENTS))
+            self._collect_events = self.kubeutil.is_leader or _is_affirmative(inst.get('collect_events', DEFAULT_COLLECT_EVENTS))
             if self._collect_events:
                 self.event_retriever = self.kubeutil.get_event_retriever()
             elif self.kubeutil.collect_service_tag:
@@ -493,7 +493,7 @@ class Kubernetes(AgentCheck):
             namespaces_endpoint = '{}/namespaces'.format(self.kubeutil.kubernetes_api_url)
             self.log.debug('Kubernetes API endpoint to query namespaces: %s' % namespaces_endpoint)
 
-            namespaces = self.kubeutil.retrieve_json_auth(namespaces_endpoint)
+            namespaces = self.kubeutil.retrieve_json_auth(namespaces_endpoint).json()
             for namespace in namespaces.get('items', []):
                 name = namespace.get('metadata', {}).get('name', None)
                 if name and self.k8s_namespace_regexp.match(name):
